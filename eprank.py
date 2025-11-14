@@ -4,7 +4,7 @@ import numpy as np
 from scipy.special import roots_hermitenorm
 from scipy.special import ndtr as normcdf
 
-def exprop(games, num_players, num_its, return_msg=False, quad_degree = 64):
+def exprop(games, num_players, num_its, return_msg=False, quad_degree = 64, tol=1e-3):
     """
     games : array of game outcomes, (winner, loser)
     num_players : number of players
@@ -37,7 +37,9 @@ def exprop(games, num_players, num_its, return_msg=False, quad_degree = 64):
     # array of posterior means and variances
     posterior = np.zeros((num_players, 2))
 
-    for _ in range(num_its):
+    for it in range(num_its):
+        old_posterior = posterior.copy() #added
+
         for i in range(num_players):
             # compute player i's posterior marginal distribution
             mrgnl = np.ones(quad_degree)
@@ -50,7 +52,49 @@ def exprop(games, num_players, num_its, return_msg=False, quad_degree = 64):
             for a, j, y_ai in X[i]:
                 msg[i,a] = mean_var(mrgnl / F(msg[j,a], y_ai))
 
+                # ← NEW: Convergence check
+        if tol is not None:
+            max_change = np.max(np.abs(posterior - old_posterior))
+            print(f"Iter {it}: max_change={max_change:.3e}")  
+            if max_change < tol:
+                print(f"Converged at iteration {it}")         
+                break
+
     if return_msg:
         return posterior, msg
 
     return posterior
+
+def pairwise_better_probs(means, vars_):
+    diff_mean = means[:, None] - means[None, :]
+    diff_std  = np.sqrt(vars_[:, None] + vars_[None, :])
+    eps = 1e-12
+    diff_std = np.maximum(diff_std, eps)
+    P = normcdf(diff_mean / diff_std)
+    np.fill_diagonal(P, 0.5)
+    return P
+
+def pairwise_better_probs(means, vars_):
+    diff_mean = means[:, None] - means[None, :]
+    diff_std  = np.sqrt(vars_[:, None] + vars_[None, :])
+    eps = 1e-12
+    diff_std = np.maximum(diff_std, eps)
+    P = normcdf(diff_mean / diff_std)
+    return P
+
+def pairwise_match_win_probs(means, vars_):
+    means = np.asarray(means)
+    vars_ = np.asarray(vars_)
+
+    # μ_i - μ_j
+    diff_mean = means[:, None] - means[None, :]
+
+    # sqrt(1 + σ_i^2 + σ_j^2)
+    diff_std = np.sqrt(1.0 + vars_[:, None] + vars_[None, :])
+
+    eps = 1e-12
+    diff_std = np.maximum(diff_std, eps)
+
+    P = normcdf(diff_mean / diff_std)
+    np.fill_diagonal(P, 0.5)  # P(player i beats itself) = 0.5 by symmetry
+    return P

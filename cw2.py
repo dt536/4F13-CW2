@@ -8,7 +8,7 @@ def sorted_barplot(P, W):
     corresponding names
     :param P: An array of length num_players (107)
     :param W: Array containing names of each player
-    :return: None
+    :return: sorted indices
     """
     M = len(P)
     xx = np.linspace(0, M, M)
@@ -19,4 +19,5 @@ def sorted_barplot(P, W):
     plt.yticks(np.linspace(0, M, M), labels=sorted_names[:, 0])
     plt.ylim([-2, 109])
     plt.show()
+    return sorted_indices
 

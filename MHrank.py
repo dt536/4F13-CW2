@@ -28,11 +28,13 @@ def MH_sample(games, num_players, num_its):
             lp1 = norm.logpdf(w[i]) + np.sum(norm.logcdf(outcome*(w[i]-w[j])))
 
             # proposed new skill and log-prob
-            # TODO
+            new_skill = w[i] + np.random.normal(loc=0, scale=np.sqrt(0.5))
+            lp2 = norm.logpdf(new_skill) + np.sum(norm.logcdf(outcome*(new_skill-w[j])))
 
             # accept or reject move:
-            # TODO
-
+            if np.log(np.random.uniform(low=0, high=1)) < lp2-lp1:
+                w[i] = new_skill
+                
         skill_samples[:, itr] = w
 
     return skill_samples
